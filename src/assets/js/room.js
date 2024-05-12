@@ -1,6 +1,5 @@
 import h from './helpers.js';
 
-
 class Room {
     constructor(socket, room, username) {
         this.socket = socket
@@ -116,16 +115,16 @@ class Room {
              * Ask user what they want to record.
              * Get the stream based on selection and start recording
              */
-            if (!mediaRecorder || mediaRecorder.state == 'inactive') {
+            if (!this.mediaRecorder || this.mediaRecorder.state == 'inactive') {
                 h.toggleModal('recording-options-modal', true);
             }
 
-            else if (mediaRecorder.state == 'paused') {
-                mediaRecorder.resume();
+            else if (this.mediaRecorder.state == 'paused') {
+                this.mediaRecorder.resume();
             }
 
-            else if (mediaRecorder.state == 'recording') {
-                mediaRecorder.stop();
+            else if (this.mediaRecorder.state == 'recording') {
+                this.mediaRecorder.stop();
             }
         });
 
@@ -151,12 +150,12 @@ class Room {
             h.toggleModal('recording-options-modal', false);
 
             if (this.myStream && this.myStream.getTracks().length) {
-                startRecording(this.myStream);
+                this.startRecording(this.myStream);
             }
 
             else {
                 h.getUserFullMedia().then((videoStream) => {
-                    startRecording(videoStream);
+                    this.startRecording(videoStream);
                 }).catch(() => { });
             }
         });
@@ -278,6 +277,7 @@ class Room {
         if (createOffer) {
             this.pc[partnerName].onnegotiationneeded = async () => {
                 let offer = await this.pc[partnerName].createOffer();
+                console.log(offer);
 
                 await this.pc[partnerName].setLocalDescription(offer);
 
@@ -439,30 +439,49 @@ class Room {
         }
     }
 
+    toggleRecordingIcons = ( isRecording ) => {
+        let e = document.getElementById( 'record' );
+
+        if ( isRecording ) {
+            e.setAttribute( 'title', 'Stop recording' );
+            e.children[0].classList.add( 'text-danger' );
+            e.children[0].classList.remove( 'text-white' );
+        }
+
+        else {
+            e.setAttribute( 'title', 'Record' );
+            e.children[0].classList.add( 'text-white' );
+            e.children[0].classList.remove( 'text-danger' );
+        }
+    }
+
 
     startRecording = (stream) => {
-        mediaRecorder = new MediaRecorder(stream, {
+        this.mediaRecorder = new MediaRecorder(stream, {
             mimeType: 'video/webm;codecs=vp9'
         });
 
-        mediaRecorder.start(1000);
-        toggleRecordingIcons(true);
+        this.mediaRecorder.start(1000);
+        this.toggleRecordingIcons(true);
 
-        mediaRecorder.ondataavailable = function (e) {
-            recordedStream.push(e.data);
+        this.mediaRecorder.ondataavailable =  (e) => {
+
+            console.log(this.recordedStream);
+
+            this.recordedStream.push(e.data);
         };
 
-        mediaRecorder.onstop = function () {
-            toggleRecordingIcons(false);
+        this.mediaRecorder.onstop =  () =>{
+            this.toggleRecordingIcons(false);
 
-            h.saveRecordedStream(recordedStream, username);
+            h.saveRecordedStream(this.recordedStream, username);
 
             setTimeout(() => {
                 recordedStream = [];
             }, 3000);
         };
 
-        mediaRecorder.onerror = function (e) {
+        this.mediaRecorder.onerror = function (e) {
             console.error(e);
         };
     }
