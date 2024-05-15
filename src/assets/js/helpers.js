@@ -53,7 +53,7 @@ export default {
     },
 
 
-    getUserFullMedia(width = 854, height = 480) {
+    getUserFullMedia(width = 640, height = 360) {
         if (this.userMediaAvailable()) {
             const constraints = {
                 video: {
@@ -312,7 +312,7 @@ export default {
 
             //create a new div for card
             let cardDiv = document.createElement('div');
-            cardDiv.className = 'card card-sm';
+            cardDiv.className = 'remote-video';
             cardDiv.id = `demo-${i}`;
             cardDiv.appendChild(newVid);
             cardDiv.appendChild(controlDiv);

@@ -346,7 +346,7 @@ const Room = () => {
 
                 //create a new div for card
                 let cardDiv = document.createElement('div');
-                cardDiv.className = 'card card-sm';
+                cardDiv.className = 'remote-video-container';
                 cardDiv.id = partnerName;
                 cardDiv.appendChild(newVid);
                 cardDiv.appendChild(controlDiv);

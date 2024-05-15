@@ -139,6 +139,8 @@
     align-items: center;
     justify-content: center;
     padding: 1rem;
+    overflow: scroll;
+    max-width: 100%;
 }
 
 .remote-videos-container .remote-videos div{
@@ -149,15 +151,31 @@
     width: 100%;
 }
 
+.remote-video-container{
+    border-radius: 0.25rem;
+    margin: 0 0.25rem;
+    background-color: aquamarine;
+    position: relative;
+    width: 33%;
+    min-width: 120px;
+}
+
+.remote-video-controls {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    color: white;
+    font-size: 10px;
+}
 
 .local-video-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 80%;
+    width: 70%;
     margin-top: 2rem;
 }
 
 .local-video-container video {
-    width: 1000%;
+    width: 100%;
 }
