@@ -2,6 +2,7 @@ import h from './helpers.js';
 
 import createRoom from './components/createRoom.js';
 import joinRoom from './components/joinRoom.js';
+import ConferenceComponent from './components/conference.js';
 
 const Room = () => {
     var pc = []
@@ -27,6 +28,10 @@ const Room = () => {
     }
 
     else {
+
+        const conferenceComponent = ConferenceComponent();
+        document.body.appendChild(conferenceComponent);
+
         let commElem = document.getElementsByClassName('room-comm');
 
         for (let i = 0; i < commElem.length; i++) {
@@ -239,8 +244,6 @@ const Room = () => {
             }
         });
     }
-
-
 
     // IMPORTANT FUNCTIONS
     function getAndSetUserStream() {
