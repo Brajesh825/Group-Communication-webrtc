@@ -230,3 +230,123 @@
         z-index: 1000;
     }
 }
+
+ /* Styling for the room creation component */
+
+.room-container {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    margin-top: 3rem;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background-color: #f9f9f9;
+}
+
+.room-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.error-message {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.error-text {
+    color: #ff0000;
+}
+
+.input-container {
+    margin-bottom: 15px;
+}
+
+.input-container label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.text-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+.create-button {
+    width: 100%;
+    padding: 12px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.create-button:hover {
+    background-color: #0056b3;
+}
+
+.room-created-message {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #e9ecef;
+}
+
+.room-created-message a {
+    color: #007bff;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.room-created-message a:hover {
+    text-decoration: underline;
+}
+
+/* Style for room joining component */
+
+/* Main container */
+#username-set {
+    width: 100%;
+    margin-top: 3rem;
+    text-align: center;
+}
+
+/* Header */
+#username-set .header {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+/* Error message */
+#err-msg-username {
+    color: red;
+    font-size: 12px;
+}
+
+/* Username input */
+#username-set input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+/* Enter Room button */
+#enter-room {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    background-color: #007bff;
+    color: #fff;
+    cursor: pointer;
+}

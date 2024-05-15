@@ -1,27 +1,112 @@
 import h from './helpers.js';
 
-class Room {
-    constructor(socket, room, username) {
-        this.socket = socket
-        this.socketId = ''
-        this.randomNumber = `__${h.generateRandomString()}__${h.generateRandomString()}__`;
-        this.myStream = ''
-        this.screen = ''
-        this.recordedStream = []
-        this.mediaRecorder = ''
-        this.room = room;
-        this.socketId = this.socket.io.engine.id;
-        this.pc = []
-        this.username = username
+import createRoom from './components/createRoom.js';
+import joinRoom from './components/joinRoom.js';
+
+const Room = () => {
+    var pc = []
+    let socket = io('/stream');
+    var socketId = '';
+    var randomNumber = `__${h.generateRandomString()}__${h.generateRandomString()}__`;
+    var myStream = '';
+    var screen = '';
+    var recordedStream = [];
+    var mediaRecorder = '';
+
+    const room = h.getQString(location.href, 'room');
+    const username = sessionStorage.getItem('username');
+
+    if (!room) {
+        const roomComponent = createRoom();
+        document.body.appendChild(roomComponent);
     }
 
-    listen = () => {
-        this.socket.on('connect', this.onConnect)
+    else if (!username) {
+        const enterRoomComponent = joinRoom();
+        document.body.appendChild(enterRoomComponent);
+    }
+
+    else {
+        let commElem = document.getElementsByClassName('room-comm');
+
+        for (let i = 0; i < commElem.length; i++) {
+            commElem[i].attributes.removeNamedItem('hidden');
+        }
+
+        //Get user video by default
+        getAndSetUserStream();
+
+
+        socket.on('connect', () => {
+            //set socketId
+            socketId = socket.io.engine.id;
+            document.getElementById('randomNumber').innerText = randomNumber;
+
+            socket.emit('subscribe', {
+                room: room,
+                socketId: socketId
+            });
+
+            socket.on('new user', (data) => {
+                socket.emit('newUserStart', { to: data.socketId, sender: socketId });
+                pc.push(data.socketId);
+                init(true, data.socketId);
+            });
+
+            socket.on('newUserStart', (data) => {
+                pc.push(data.sender);
+                init(false, data.sender);
+            });
+
+            socket.on('ice candidates', async (data) => {
+                data.candidate ? await pc[data.sender].addIceCandidate(new RTCIceCandidate(data.candidate)) : '';
+            });
+
+
+            socket.on('sdp', async (data) => {
+                if (data.description.type === 'offer') {
+                    data.description ? await pc[data.sender].setRemoteDescription(new RTCSessionDescription(data.description)) : '';
+
+                    h.getUserFullMedia().then(async (stream) => {
+                        if (!document.getElementById('local').srcObject) {
+                            h.setLocalStream(stream);
+                        }
+
+                        //save my stream
+                        myStream = stream;
+
+                        console.log("stream");
+
+                        stream.getTracks().forEach((track) => {
+                            pc[data.sender].addTrack(track, stream);
+                        });
+
+                        let answer = await pc[data.sender].createAnswer();
+
+                        await pc[data.sender].setLocalDescription(answer);
+
+                        socket.emit('sdp', { description: pc[data.sender].localDescription, to: data.sender, sender: socketId });
+
+                    }).catch((e) => {
+                        console.error(e);
+                    });
+                }
+
+                else if (data.description.type === 'answer') {
+                    await pc[data.sender].setRemoteDescription(new RTCSessionDescription(data.description));
+                }
+            });
+
+
+            socket.on('chat', (data) => {
+                h.addChat(data, 'remote');
+            });
+        });
 
         document.getElementById('chat-input-btn').addEventListener('click', (e) => {
             console.log("here: ", document.getElementById('chat-input').value)
             if (document.getElementById('chat-input').value.trim()) {
-                this.sendMsg(document.getElementById('chat-input').value);
+                sendMsg(document.getElementById('chat-input').value);
 
                 setTimeout(() => {
                     document.getElementById('chat-input').value = '';
@@ -34,7 +119,7 @@ class Room {
             if (e.which === 13 && (e.target.value.trim())) {
                 e.preventDefault();
 
-                this.sendMsg(e.target.value);
+                sendMsg(e.target.value);
 
                 setTimeout(() => {
                     e.target.value = '';
@@ -42,19 +127,18 @@ class Room {
             }
         });
 
-
         //When the video icon is clicked
         document.getElementById('toggle-video').addEventListener('click', (e) => {
             e.preventDefault();
 
             let elem = document.getElementById('toggle-video');
 
-            if (this.myStream.getVideoTracks()[0].enabled) {
+            if (myStream.getVideoTracks()[0].enabled) {
                 e.target.classList.remove('fa-video');
                 e.target.classList.add('fa-video-slash');
                 elem.setAttribute('title', 'Show Video');
 
-                this.myStream.getVideoTracks()[0].enabled = false;
+                myStream.getVideoTracks()[0].enabled = false;
             }
 
             else {
@@ -62,12 +146,11 @@ class Room {
                 e.target.classList.add('fa-video');
                 elem.setAttribute('title', 'Hide Video');
 
-                this.myStream.getVideoTracks()[0].enabled = true;
+                myStream.getVideoTracks()[0].enabled = true;
             }
 
-            this.broadcastNewTracks(this.myStream, 'video');
+            broadcastNewTracks(myStream, 'video');
         });
-
 
         //When the mute icon is clicked
         document.getElementById('toggle-mute').addEventListener('click', (e) => {
@@ -75,12 +158,12 @@ class Room {
 
             let elem = document.getElementById('toggle-mute');
 
-            if (this.myStream.getAudioTracks()[0].enabled) {
+            if (myStream.getAudioTracks()[0].enabled) {
                 e.target.classList.remove('fa-microphone-alt');
                 e.target.classList.add('fa-microphone-alt-slash');
                 elem.setAttribute('title', 'Unmute');
 
-                this.myStream.getAudioTracks()[0].enabled = false;
+                myStream.getAudioTracks()[0].enabled = false;
             }
 
             else {
@@ -88,26 +171,24 @@ class Room {
                 e.target.classList.add('fa-microphone-alt');
                 elem.setAttribute('title', 'Mute');
 
-                this.myStream.getAudioTracks()[0].enabled = true;
+                myStream.getAudioTracks()[0].enabled = true;
             }
 
-            this.broadcastNewTracks(this.myStream, 'audio');
+            broadcastNewTracks(myStream, 'audio');
         });
-
 
         //When user clicks the 'Share screen' button
         document.getElementById('share-screen').addEventListener('click', (e) => {
             e.preventDefault();
 
-            if (this.screen && this.screen.getVideoTracks().length && this.screen.getVideoTracks()[0].readyState != 'ended') {
-                this.stopSharingScreen();
+            if (screen && screen.getVideoTracks().length && screen.getVideoTracks()[0].readyState != 'ended') {
+                stopSharingScreen();
             }
 
             else {
-                this.shareScreen();
+                shareScreen();
             }
         });
-
 
         //When record button is clicked
         document.getElementById('record').addEventListener('click', (e) => {
@@ -115,26 +196,25 @@ class Room {
              * Ask user what they want to record.
              * Get the stream based on selection and start recording
              */
-            if (!this.mediaRecorder || this.mediaRecorder.state == 'inactive') {
+            if (!mediaRecorder || mediaRecorder.state == 'inactive') {
                 h.toggleModal('recording-options-modal', true);
             }
 
-            else if (this.mediaRecorder.state == 'paused') {
-                this.mediaRecorder.resume();
+            else if (mediaRecorder.state == 'paused') {
+                mediaRecorder.resume();
             }
 
-            else if (this.mediaRecorder.state == 'recording') {
-                this.mediaRecorder.stop();
+            else if (mediaRecorder.state == 'recording') {
+                mediaRecorder.stop();
             }
         });
-
 
         //When user choose to record screen
         document.getElementById('record-screen').addEventListener('click', () => {
             h.toggleModal('recording-options-modal', false);
 
-            if (this.screen && this.screen.getVideoTracks().length) {
-                startRecording(this.screen);
+            if (screen && screen.getVideoTracks().length) {
+                startRecording(screen);
             }
 
             else {
@@ -144,96 +224,29 @@ class Room {
             }
         });
 
-
         //When user choose to record own video
         document.getElementById('record-video').addEventListener('click', () => {
             h.toggleModal('recording-options-modal', false);
 
-            if (this.myStream && this.myStream.getTracks().length) {
-                this.startRecording(this.myStream);
+            if (myStream && myStream.getTracks().length) {
+                startRecording(myStream);
             }
 
             else {
                 h.getUserFullMedia().then((videoStream) => {
-                    this.startRecording(videoStream);
+                    startRecording(videoStream);
                 }).catch(() => { });
             }
         });
-
     }
 
-    // Event Listener
-    onConnect = () => {
-        document.getElementById('randomNumber').innerText = randomNumber;
 
-        this.socket.emit('subscribe', {
-            room: this.room,
-            socketId: this.socketId
-        })
 
-        this.socket.on('new user', this.onNewUser)
-        this.socket.on('newUserStart', this.onNewUserStart)
-        this.socket.on('ice candidates', this.onIceCandidate)
-        this.socket.on('sdp', this.onSDP)
-        this.socket.on('chat', this.onChat)
-
-    }
-
-    onNewUser = (data) => {
-        this.socket.emit('newUserStart', { to: data.socketId, sender: this.socketId });
-        this.pc.push(data.socketId);
-        this.init(true, data.socketId);
-    }
-
-    onNewUserStart = (data) => {
-        this.pc.push(data.sender);
-        this.init(false, data.sender);
-    }
-
-    onIceCandidate = async (data) => {
-        console.log("Here");
-        data.candidate ? await this.pc[data.sender].addIceCandidate(new RTCIceCandidate(data.candidate)) : '';
-    }
-
-    onSDP = async (data) => {
-        if (data.description.type === 'offer') {
-            data.description ? await this.pc[data.sender].setRemoteDescription(new RTCSessionDescription(data.description)) : '';
-
-            h.getUserFullMedia().then(async (stream) => {
-                if (!document.getElementById('local').srcObject) {
-                    h.setLocalStream(stream);
-                }
-
-                //save my stream
-                this.myStream = stream;
-
-                stream.getTracks().forEach((track) => {
-                    this.pc[data.sender].addTrack(track, stream);
-                });
-
-                let answer = await this.pc[data.sender].createAnswer();
-
-                await this.pc[data.sender].setLocalDescription(answer);
-
-                this.socket.emit('sdp', { description: this.pc[data.sender].localDescription, to: data.sender, sender: this.socketId });
-            }).catch((e) => {
-                console.error(e);
-            });
-        }
-
-        else if (data.description.type === 'answer') {
-            await this.pc[data.sender].setRemoteDescription(new RTCSessionDescription(data.description));
-        }
-    }
-
-    onChat = (data) => {
-        h.addChat(data, 'remote');
-    }
-
-    getAndSetUserStream = () => {
+    // IMPORTANT FUNCTIONS
+    function getAndSetUserStream() {
         h.getUserFullMedia().then((stream) => {
             //save my stream
-            this.myStream = stream;
+            myStream = stream;
 
             h.setLocalStream(stream);
         }).catch((e) => {
@@ -241,28 +254,42 @@ class Room {
         });
     }
 
-    init = (createOffer, partnerName) => {
-        this.pc[partnerName] = new RTCPeerConnection(h.getIceServer());
+    function sendMsg(msg) {
+        let data = {
+            room: room,
+            msg: msg,
+            sender: `${username} (${randomNumber})`
+        };
 
-        if (this.screen && this.screen.getTracks().length) {
-            this.screen.getTracks().forEach((track) => {
-                this.pc[partnerName].addTrack(track, this.screen);//should trigger negotiationneeded event
+        //emit chat message
+        socket.emit('chat', data);
+
+        //add localchat
+        h.addChat(data, 'local');
+    }
+
+    function init(createOffer, partnerName) {
+        pc[partnerName] = new RTCPeerConnection(h.getIceServer());
+
+        if (screen && screen.getTracks().length) {
+            screen.getTracks().forEach((track) => {
+                pc[partnerName].addTrack(track, screen);//should trigger negotiationneeded event
             });
         }
 
-        else if (this.myStream) {
-            this.myStream.getTracks().forEach((track) => {
-                this.pc[partnerName].addTrack(track, this.myStream);//should trigger negotiationneeded event
+        else if (myStream) {
+            myStream.getTracks().forEach((track) => {
+                pc[partnerName].addTrack(track, myStream);//should trigger negotiationneeded event
             });
         }
 
         else {
             h.getUserFullMedia().then((stream) => {
                 //save my stream
-                this.myStream = stream;
+                myStream = stream;
 
                 stream.getTracks().forEach((track) => {
-                    this.pc[partnerName].addTrack(track, stream);//should trigger negotiationneeded event
+                    pc[partnerName].addTrack(track, stream);//should trigger negotiationneeded event
                 });
 
                 h.setLocalStream(stream);
@@ -275,27 +302,26 @@ class Room {
 
         //create offer
         if (createOffer) {
-            this.pc[partnerName].onnegotiationneeded = async () => {
-                let offer = await this.pc[partnerName].createOffer();
-                console.log(offer);
+            pc[partnerName].onnegotiationneeded = async () => {
+                let offer = await pc[partnerName].createOffer();
 
-                await this.pc[partnerName].setLocalDescription(offer);
+                await pc[partnerName].setLocalDescription(offer);
 
-                this.socket.emit('sdp', { description: this.pc[partnerName].localDescription, to: partnerName, sender: this.socketId });
+                socket.emit('sdp', { description: pc[partnerName].localDescription, to: partnerName, sender: socketId });
             };
         }
 
 
 
         //send ice candidate to partnerNames
-        this.pc[partnerName].onicecandidate = ({ candidate }) => {
-            this.socket.emit('ice candidates', { candidate: candidate, to: partnerName, sender: this.socketId });
+        pc[partnerName].onicecandidate = ({ candidate }) => {
+            socket.emit('ice candidates', { candidate: candidate, to: partnerName, sender: socketId });
         };
 
 
 
         //add
-        this.pc[partnerName].ontrack = (e) => {
+        pc[partnerName].ontrack = (e) => {
             let str = e.streams[0];
             if (document.getElementById(`${partnerName}-video`)) {
                 document.getElementById(`${partnerName}-video`).srcObject = str;
@@ -331,8 +357,8 @@ class Room {
 
 
 
-        this.pc[partnerName].onconnectionstatechange = (d) => {
-            switch (this.pc[partnerName].iceConnectionState) {
+        pc[partnerName].onconnectionstatechange = (d) => {
+            switch (pc[partnerName].iceConnectionState) {
                 case 'disconnected':
                 case 'failed':
                     h.closeVideo(partnerName);
@@ -346,8 +372,8 @@ class Room {
 
 
 
-        this.pc[partnerName].onsignalingstatechange = (d) => {
-            switch (this.pc[partnerName].signalingState) {
+        pc[partnerName].onsignalingstatechange = (d) => {
+            switch (pc[partnerName].signalingState) {
                 case 'closed':
                     console.log("Signalling state is 'closed'");
                     h.closeVideo(partnerName);
@@ -356,21 +382,7 @@ class Room {
         };
     }
 
-    sendMsg = (msg) => {
-        let data = {
-            room: this.room,
-            msg: msg,
-            sender: `${this.username} (${this.randomNumber})`
-        };
-
-        //emit chat message
-        this.socket.emit('chat', data);
-
-        //add localchat
-        h.addChat(data, 'local');
-    }
-
-    shareScreen = () => {
+    function shareScreen() {
         h.shareScreen().then((stream) => {
             h.toggleShareIcons(true);
 
@@ -379,13 +391,13 @@ class Room {
             h.toggleVideoBtnDisabled(true);
 
             //save my screen stream
-            this.screen = stream;
+            screen = stream;
 
             //share the new stream with all partners
-            this.broadcastNewTracks(stream, 'video', false);
+            broadcastNewTracks(stream, 'video', false);
 
             //When the stop sharing button shown by the browser is clicked
-            this.screen.getVideoTracks()[0].addEventListener('ended', () => {
+            screen.getVideoTracks()[0].addEventListener('ended', () => {
                 stopSharingScreen();
             });
         }).catch((e) => {
@@ -393,37 +405,37 @@ class Room {
         });
     }
 
-    stopSharingScreen = () => {
+    async function stopSharingScreen() {
         //enable video toggle btn
         h.toggleVideoBtnDisabled(false);
 
         return new Promise((res, rej) => {
-            this.screen.getTracks().length ? this.screen.getTracks().forEach(track => track.stop()) : '';
+            screen.getTracks().length ? screen.getTracks().forEach(track => track.stop()) : '';
 
             res();
         }).then(() => {
             h.toggleShareIcons(false);
-            this.broadcastNewTracks(this.myStream, 'video');
+            broadcastNewTracks(myStream, 'video');
         }).catch((e) => {
             console.error(e);
         });
     }
 
-    broadcastNewTracks = (stream, type, mirrorMode = true) => {
+    function broadcastNewTracks(stream, type, mirrorMode = true) {
         h.setLocalStream(stream, mirrorMode);
 
         let track = type == 'audio' ? stream.getAudioTracks()[0] : stream.getVideoTracks()[0];
 
-        for (let p in this.pc) {
-            let pName = this.pc[p];
+        for (let p in pc) {
+            let pName = pc[p];
 
-            if (typeof this.pc[pName] == 'object') {
-                h.replaceTrack(track, this.pc[pName]);
+            if (typeof pc[pName] == 'object') {
+                h.replaceTrack(track, pc[pName]);
             }
         }
     }
 
-    toggleRecordingIcons = (isRecording) => {
+    function toggleRecordingIcons(isRecording) {
         let e = document.getElementById('record');
 
         if (isRecording) {
@@ -439,54 +451,34 @@ class Room {
         }
     }
 
-    toggleRecordingIcons = ( isRecording ) => {
-        let e = document.getElementById( 'record' );
-
-        if ( isRecording ) {
-            e.setAttribute( 'title', 'Stop recording' );
-            e.children[0].classList.add( 'text-danger' );
-            e.children[0].classList.remove( 'text-white' );
-        }
-
-        else {
-            e.setAttribute( 'title', 'Record' );
-            e.children[0].classList.add( 'text-white' );
-            e.children[0].classList.remove( 'text-danger' );
-        }
-    }
-
-
-    startRecording = (stream) => {
-        this.mediaRecorder = new MediaRecorder(stream, {
+    function startRecording(stream) {
+        mediaRecorder = new MediaRecorder(stream, {
             mimeType: 'video/webm;codecs=vp9'
         });
 
-        this.mediaRecorder.start(1000);
-        this.toggleRecordingIcons(true);
+        mediaRecorder.start(1000);
+        toggleRecordingIcons(true);
 
-        this.mediaRecorder.ondataavailable =  (e) => {
-
-            console.log(this.recordedStream);
-
-            this.recordedStream.push(e.data);
+        mediaRecorder.ondataavailable = function (e) {
+            recordedStream.push(e.data);
         };
 
-        this.mediaRecorder.onstop =  () =>{
-            this.toggleRecordingIcons(false);
+        mediaRecorder.onstop = function () {
+            toggleRecordingIcons(false);
 
-            h.saveRecordedStream(this.recordedStream, username);
+            h.saveRecordedStream(recordedStream, username);
 
             setTimeout(() => {
                 recordedStream = [];
             }, 3000);
         };
 
-        this.mediaRecorder.onerror = function (e) {
+        mediaRecorder.onerror = function (e) {
             console.error(e);
         };
     }
 
-
 }
+
 
 export default Room
