@@ -1,4 +1,67 @@
- /* Styling for the room creation component */
+/* Navbar styles */
+.navbar {
+    background-color: #007bff; /* Blue background color */
+    padding: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Add shadow for depth */
+}
+
+/* Brand styles */
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+/* Controls container */
+.navbar-controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+/* Unique Identifier styles */
+.text-white {
+    color: #fff; /* White text color */
+}
+
+/* Button styles */
+.navbar-button {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+/* Icon styles */
+.navbar-button i {
+    font-size: 1.2rem;
+}
+
+/* Exit link styles */
+.navbar-exit-link {
+    margin-left: 20px;
+    text-decoration: none;
+    color: #fff;
+    font-weight: bold;
+}
+
+/* Hover effect for buttons */
+.navbar-button:hover {
+    opacity: 0.8;
+}
+
+/* Media query for responsiveness */
+@media (max-width: 768px) {
+    /* Adjustments for smaller screens */
+    .navbar-brand {
+        font-size: 1.2rem;
+    }
+
+    .navbar-button i {
+        font-size: 1rem;
+    }
+}
+
+/* Styling for the room creation component */
 
 .room-container {
     width: 100%;
@@ -179,3 +242,4 @@
 .local-video-container video {
     width: 100%;
 }
+

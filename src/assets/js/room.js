@@ -3,6 +3,7 @@ import h from './helpers.js';
 import createRoom from './components/createRoom.js';
 import joinRoom from './components/joinRoom.js';
 import ConferenceComponent from './components/conference.js';
+import Navbar from './components/navbar.js';
 
 const Room = () => {
     var pc = []
@@ -16,6 +17,12 @@ const Room = () => {
 
     const room = h.getQString(location.href, 'room');
     const username = sessionStorage.getItem('username');
+
+    // Events Handlers
+
+    const navbar = Navbar()
+    document.body.appendChild(navbar)
+
 
     if (!room) {
         const roomComponent = createRoom();
@@ -108,33 +115,35 @@ const Room = () => {
             });
         });
 
-        document.getElementById('chat-input-btn').addEventListener('click', (e) => {
-            console.log("here: ", document.getElementById('chat-input').value)
-            if (document.getElementById('chat-input').value.trim()) {
-                sendMsg(document.getElementById('chat-input').value);
+        // document.getElementById('chat-input-btn').addEventListener('click', (e) => {
+        //     console.log("here: ", document.getElementById('chat-input').value)
+        //     if (document.getElementById('chat-input').value.trim()) {
+        //         sendMsg(document.getElementById('chat-input').value);
 
-                setTimeout(() => {
-                    document.getElementById('chat-input').value = '';
-                }, 50);
-            }
-        });
+        //         setTimeout(() => {
+        //             document.getElementById('chat-input').value = '';
+        //         }, 50);
+        //     }
+        // });
 
         //Chat textarea
-        document.getElementById('chat-input').addEventListener('keypress', (e) => {
-            if (e.which === 13 && (e.target.value.trim())) {
-                e.preventDefault();
+        // document.getElementById('chat-input').addEventListener('keypress', (e) => {
+        //     if (e.which === 13 && (e.target.value.trim())) {
+        //         e.preventDefault();
 
-                sendMsg(e.target.value);
+        //         sendMsg(e.target.value);
 
-                setTimeout(() => {
-                    e.target.value = '';
-                }, 50);
-            }
-        });
+        //         setTimeout(() => {
+        //             e.target.value = '';
+        //         }, 50);
+        //     }
+        // });
 
         //When the video icon is clicked
         document.getElementById('toggle-video').addEventListener('click', (e) => {
             e.preventDefault();
+
+            console.log("Toggle Video");
 
             let elem = document.getElementById('toggle-video');
 
