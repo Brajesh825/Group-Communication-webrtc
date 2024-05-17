@@ -1,4 +1,4 @@
-export default {
+const helpers = {
     generateRandomString() {
         const crypto = window.crypto || window.msCrypto;
         let array = new Uint32Array(1);
@@ -210,3 +210,6 @@ export default {
         }, 2000);
     }
 };
+
+
+export default helpers

@@ -185,11 +185,11 @@ const Room = () => {
     
         document.addEventListener( 'click', ( e ) => {
             if ( e.target && e.target.classList.contains( 'expand-remote-video' ) ) {
-                helpers.maximiseStream( e );
+                h.maximiseStream( e );
             }
     
             else if ( e.target && e.target.classList.contains( 'mute-remote-mic' ) ) {
-                helpers.singleStreamToggleMute( e );
+                h.singleStreamToggleMute( e );
             }
         } );
 
@@ -334,10 +334,6 @@ const Room = () => {
             }
         }
     }
-
-
-
-
 
 }
 
