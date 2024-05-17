@@ -229,6 +229,9 @@
     right: 6px;
     color: white;
     font-size: 10px;
+    display: flex;
+    justify-content: space-between;
+    width: 75%;
 }
 
 .local-video-container {

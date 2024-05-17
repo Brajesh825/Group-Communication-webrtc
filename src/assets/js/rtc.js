@@ -1,5 +1,3 @@
-import h from './helpers.js';
-
 import Room from './room.js';
 
-window.addEventListener('load', Room )
+window.addEventListener('load', new Room() )
