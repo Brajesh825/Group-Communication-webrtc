@@ -3,6 +3,7 @@ import createRoom from './components/createRoom.js';
 import joinRoom from './components/joinRoom.js';
 import ConferenceComponent from './components/conference.js';
 import Navbar from './components/navbar.js';
+import { MediaPipe,startHandDetection } from './utils/mediaPipe.js';
 
 class Room {
     constructor() {
@@ -19,8 +20,8 @@ class Room {
         this.init();
     }
 
-    init() {
-        this.addNavbar();
+    async init() {
+         this.addNavbar();
 
         if (!this.room) {
             this.addRoomComponent();
@@ -31,6 +32,8 @@ class Room {
             this.setupSocketEvents();
             this.getAndSetUserStream();
             this.setupUIEvents();
+            MediaPipe()
+
         }
     }
 
@@ -152,7 +155,9 @@ class Room {
     getAndSetUserStream() {
         h.getUserFullMedia().then((stream) => {
             this.myStream = stream;
+            console.log(this.myStream);
             h.setLocalStream(stream);
+            startHandDetection(stream)
         }).catch((e) => {
             console.error(`stream error: ${e}`);
         });
