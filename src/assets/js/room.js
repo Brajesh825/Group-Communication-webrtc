@@ -12,8 +12,6 @@ const Room = () => {
     var randomNumber = `__${h.generateRandomString()}__${h.generateRandomString()}__`;
     var myStream = '';
     var screen = '';
-    var recordedStream = [];
-    var mediaRecorder = '';
 
     const room = h.getQString(location.href, 'room');
     const username = sessionStorage.getItem('username');
@@ -115,30 +113,6 @@ const Room = () => {
             });
         });
 
-        // document.getElementById('chat-input-btn').addEventListener('click', (e) => {
-        //     console.log("here: ", document.getElementById('chat-input').value)
-        //     if (document.getElementById('chat-input').value.trim()) {
-        //         sendMsg(document.getElementById('chat-input').value);
-
-        //         setTimeout(() => {
-        //             document.getElementById('chat-input').value = '';
-        //         }, 50);
-        //     }
-        // });
-
-        //Chat textarea
-        // document.getElementById('chat-input').addEventListener('keypress', (e) => {
-        //     if (e.which === 13 && (e.target.value.trim())) {
-        //         e.preventDefault();
-
-        //         sendMsg(e.target.value);
-
-        //         setTimeout(() => {
-        //             e.target.value = '';
-        //         }, 50);
-        //     }
-        // });
-
         //When the video icon is clicked
         document.getElementById('toggle-video').addEventListener('click', (e) => {
             e.preventDefault();
@@ -191,67 +165,6 @@ const Room = () => {
             broadcastNewTracks(myStream, 'audio');
         });
 
-        //When user clicks the 'Share screen' button
-        document.getElementById('share-screen').addEventListener('click', (e) => {
-            e.preventDefault();
-
-            if (screen && screen.getVideoTracks().length && screen.getVideoTracks()[0].readyState != 'ended') {
-                stopSharingScreen();
-            }
-
-            else {
-                shareScreen();
-            }
-        });
-
-        //When record button is clicked
-        document.getElementById('record').addEventListener('click', (e) => {
-            /**
-             * Ask user what they want to record.
-             * Get the stream based on selection and start recording
-             */
-            if (!mediaRecorder || mediaRecorder.state == 'inactive') {
-                h.toggleModal('recording-options-modal', true);
-            }
-
-            else if (mediaRecorder.state == 'paused') {
-                mediaRecorder.resume();
-            }
-
-            else if (mediaRecorder.state == 'recording') {
-                mediaRecorder.stop();
-            }
-        });
-
-        //When user choose to record screen
-        document.getElementById('record-screen').addEventListener('click', () => {
-            h.toggleModal('recording-options-modal', false);
-
-            if (screen && screen.getVideoTracks().length) {
-                startRecording(screen);
-            }
-
-            else {
-                h.shareScreen().then((screenStream) => {
-                    startRecording(screenStream);
-                }).catch(() => { });
-            }
-        });
-
-        //When user choose to record own video
-        document.getElementById('record-video').addEventListener('click', () => {
-            h.toggleModal('recording-options-modal', false);
-
-            if (myStream && myStream.getTracks().length) {
-                startRecording(myStream);
-            }
-
-            else {
-                h.getUserFullMedia().then((videoStream) => {
-                    startRecording(videoStream);
-                }).catch(() => { });
-            }
-        });
     }
 
     // IMPORTANT FUNCTIONS
@@ -264,20 +177,6 @@ const Room = () => {
         }).catch((e) => {
             console.error(`stream error: ${e}`);
         });
-    }
-
-    function sendMsg(msg) {
-        let data = {
-            room: room,
-            msg: msg,
-            sender: `${username} (${randomNumber})`
-        };
-
-        //emit chat message
-        socket.emit('chat', data);
-
-        //add localchat
-        h.addChat(data, 'local');
     }
 
     function init(createOffer, partnerName) {
@@ -394,45 +293,6 @@ const Room = () => {
         };
     }
 
-    function shareScreen() {
-        h.shareScreen().then((stream) => {
-            h.toggleShareIcons(true);
-
-            //disable the video toggle btns while sharing screen. This is to ensure clicking on the btn does not interfere with the screen sharing
-            //It will be enabled was user stopped sharing screen
-            h.toggleVideoBtnDisabled(true);
-
-            //save my screen stream
-            screen = stream;
-
-            //share the new stream with all partners
-            broadcastNewTracks(stream, 'video', false);
-
-            //When the stop sharing button shown by the browser is clicked
-            screen.getVideoTracks()[0].addEventListener('ended', () => {
-                stopSharingScreen();
-            });
-        }).catch((e) => {
-            console.error(e);
-        });
-    }
-
-    async function stopSharingScreen() {
-        //enable video toggle btn
-        h.toggleVideoBtnDisabled(false);
-
-        return new Promise((res, rej) => {
-            screen.getTracks().length ? screen.getTracks().forEach(track => track.stop()) : '';
-
-            res();
-        }).then(() => {
-            h.toggleShareIcons(false);
-            broadcastNewTracks(myStream, 'video');
-        }).catch((e) => {
-            console.error(e);
-        });
-    }
-
     function broadcastNewTracks(stream, type, mirrorMode = true) {
         h.setLocalStream(stream, mirrorMode);
 
@@ -447,48 +307,6 @@ const Room = () => {
         }
     }
 
-    function toggleRecordingIcons(isRecording) {
-        let e = document.getElementById('record');
-
-        if (isRecording) {
-            e.setAttribute('title', 'Stop recording');
-            e.children[0].classList.add('text-danger');
-            e.children[0].classList.remove('text-white');
-        }
-
-        else {
-            e.setAttribute('title', 'Record');
-            e.children[0].classList.add('text-white');
-            e.children[0].classList.remove('text-danger');
-        }
-    }
-
-    function startRecording(stream) {
-        mediaRecorder = new MediaRecorder(stream, {
-            mimeType: 'video/webm;codecs=vp9'
-        });
-
-        mediaRecorder.start(1000);
-        toggleRecordingIcons(true);
-
-        mediaRecorder.ondataavailable = function (e) {
-            recordedStream.push(e.data);
-        };
-
-        mediaRecorder.onstop = function () {
-            toggleRecordingIcons(false);
-
-            h.saveRecordedStream(recordedStream, username);
-
-            setTimeout(() => {
-                recordedStream = [];
-            }, 3000);
-        };
-
-        mediaRecorder.onerror = function (e) {
-            console.error(e);
-        };
-    }
 
 }
 
