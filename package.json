@@ -20,7 +20,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/amirsanni/livestream-server.git"
   },
   "keywords": [
     "LiveStream",
@@ -29,7 +28,5 @@
   "author": "Amir Sanni <amirsanni@gmail.com>",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/amirsanni/livestream-server/issues"
-  },
-  "homepage": "https://github.com/amirsanni/livestream-server#readme"
+  }
 }
